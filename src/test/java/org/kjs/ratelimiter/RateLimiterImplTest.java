@@ -1,26 +1,38 @@
 package org.kjs.ratelimiter;
 
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.kjs.ratelimiter.algorithm.Limiter;
+import org.kjs.ratelimiter.algorithm.tokenbucket.FixedTimeRefreshStrategy;
+import org.kjs.ratelimiter.algorithm.tokenbucket.TokenBucket;
 import org.kjs.ratelimiter.impl.RateLimiterImpl;
-import org.mockito.MockitoAnnotations;
-import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.concurrent.ConcurrentHashMap;
+
 @ExtendWith(MockitoExtension.class)
-public class RateLimiterImplTest {
-    @Spy
-    RateLimiter rateLimiter;
+class RateLimiterImplTest {
+    private RateLimiter rateLimiter;
+    private Limiter limiter;
 
     @BeforeEach
-    public void init() {
+    void init() {
+        this.limiter = new TokenBucket(new ConcurrentHashMap<>(), new FixedTimeRefreshStrategy(new ConcurrentHashMap<>()));
+        this.rateLimiter = new RateLimiterImpl(this.limiter);
     }
 
     @Test
-    public void isAllowedNegativeTest() {
-        Assertions.assertEquals(false, this.rateLimiter.isAllowed("test"));
+    void testIsAllowedNegative() {
+        for (int i = 0; i < 10; i++) {
+            this.rateLimiter.isAllowed("test");
+        }
+        Assertions.assertFalse(this.rateLimiter.isAllowed("test"));
+    }
+
+    @Test
+    void testIsAllowed() {
+        Assertions.assertTrue(this.rateLimiter.isAllowed("test"));
     }
 }
