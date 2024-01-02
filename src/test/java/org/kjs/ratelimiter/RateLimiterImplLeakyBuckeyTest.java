@@ -5,21 +5,20 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.kjs.ratelimiter.algorithm.Limiter;
-import org.kjs.ratelimiter.algorithm.tokenbucket.FixedTimeRefreshStrategy;
-import org.kjs.ratelimiter.algorithm.tokenbucket.TokenBucket;
+import org.kjs.ratelimiter.algorithm.leakybucket.LeakyBucket;
 import org.kjs.ratelimiter.impl.RateLimiterImpl;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.concurrent.ConcurrentHashMap;
 
 @ExtendWith(MockitoExtension.class)
-class RateLimiterImplTest {
+class RateLimiterImplLeakyBuckeyTest {
     private RateLimiter rateLimiter;
     private Limiter limiter;
 
     @BeforeEach
     void init() {
-        this.limiter = new TokenBucket(new ConcurrentHashMap<>(), new FixedTimeRefreshStrategy(new ConcurrentHashMap<>()));
+        this.limiter = new LeakyBucket(new ConcurrentHashMap<>());
         this.rateLimiter = new RateLimiterImpl(this.limiter);
     }
 
