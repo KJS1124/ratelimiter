@@ -5,20 +5,24 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.kjs.ratelimiter.algorithm.Limiter;
+import org.kjs.ratelimiter.algorithm.leakybucket.Consumer;
 import org.kjs.ratelimiter.algorithm.leakybucket.LeakyBucket;
 import org.kjs.ratelimiter.impl.RateLimiterImpl;
+import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.concurrent.ConcurrentHashMap;
 
 @ExtendWith(MockitoExtension.class)
-class RateLimiterImplLeakyBuckeyTest {
+class RateLimiterImplLeakyBucketTest {
     private RateLimiter rateLimiter;
     private Limiter limiter;
+    @Mock
+    private Consumer consumer;
 
     @BeforeEach
     void init() {
-        this.limiter = new LeakyBucket(new ConcurrentHashMap<>());
+        this.limiter = new LeakyBucket(consumer, new ConcurrentHashMap<>());
         this.rateLimiter = new RateLimiterImpl(this.limiter);
     }
 
