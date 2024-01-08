@@ -22,7 +22,7 @@ import java.util.concurrent.TimeUnit;
 @Service
 @Slf4j
 @RequiredArgsConstructor
-public class LeakyBucket implements Limiter {
+public class LeakyBucketService implements Limiter {
     private static final Integer MAX_REQUEST_ALLOWED = 3;
     private static final Integer CONSUMPTION_RATE_PER_MIN = 30;
     private static final Integer CONSUMPTION_TIME_PER_MESSAGE = 60 / CONSUMPTION_RATE_PER_MIN;
@@ -30,32 +30,28 @@ public class LeakyBucket implements Limiter {
     private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
 
     @Qualifier("ConcurrentHashMap")
-    private final Map<String, Queue<Request>> userQueue;
+    private final Map<String, Bucket> userBucketMapping;
 
     @Override
     public boolean isAllowed(String uniqueId) {
-        userQueue.computeIfAbsent(uniqueId, key -> {
-            Queue<Request> queue = new ConcurrentLinkedQueue<>();
-            this.addUserQueueToScheduler(queue);
-            return queue;
+        userBucketMapping.computeIfAbsent(uniqueId, key -> {
+            Bucket bucket = Bucket.builder().queue(new ConcurrentLinkedQueue<>()).uniqueId(uniqueId).maxSize(MAX_REQUEST_ALLOWED).build();
+            this.addUserQueueToScheduler(bucket);
+            return bucket;
         });
 
-        if (userQueue.get(uniqueId).size() <= MAX_REQUEST_ALLOWED) {
-            userQueue.get(uniqueId).add(new Request(uniqueId));
-            return true;
-        }
-        return false;
+        return this.userBucketMapping.get(uniqueId).consume();
     }
 
-    public boolean addUserQueueToScheduler(Queue<Request> queue) {
+    public boolean addUserQueueToScheduler(Bucket bucket) {
         try {
             scheduledExecutorService.scheduleAtFixedRate(() -> {
-                var request = queue.poll();
+                var request = bucket.getQueue().poll();
                 this.consumer.handleRequest(request);
             }, CONSUMPTION_TIME_PER_MESSAGE, CONSUMPTION_TIME_PER_MESSAGE, TimeUnit.SECONDS);
             return true;
         } catch (Exception exception) {
-            log.warn("Not able to schedule the leaky bucket scheduler for {}", queue);
+            log.warn("Not able to schedule the leaky bucket scheduler for {}", bucket);
             return false;
         }
     }
